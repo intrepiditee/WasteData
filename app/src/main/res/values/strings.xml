@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">WasteData</string>
+    <string name="inputHint">Number of MB to waste</string>
+</resources>
