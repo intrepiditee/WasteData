@@ -1,1 +1,3 @@
-Everytime when starting to waste, fetch newest download file list from server.
+Every time when starting to waste, fetch newest download file list from server.
+
+Terminate AsyncTask after wasting stops. Do not remove progress bar. Reset when wasting restarts.

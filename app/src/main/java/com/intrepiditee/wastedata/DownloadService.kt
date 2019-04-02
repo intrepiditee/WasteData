@@ -1,6 +1,5 @@
 package com.intrepiditee.wastedata
 
-import android.Manifest
 import android.app.DownloadManager
 import android.app.IntentService
 import android.app.Service
@@ -13,10 +12,11 @@ import android.net.Uri
 import android.os.Binder
 import android.os.Environment
 import android.os.IBinder
-import android.support.v4.app.ActivityCompat
 import android.util.Log
 import com.intrepiditee.wastedata.Utils.Companion.showToast
+import java.io.IOException
 import java.net.HttpURLConnection
+import java.net.SocketTimeoutException
 import java.net.URL
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
@@ -24,6 +24,8 @@ import kotlin.concurrent.thread
 
 
 class DownloadService : Service() {
+    var isStarted: Boolean = false
+
     // Unit is B
     private var amountToWaste: Long = 0
     private var amountWasted = AtomicLong()
@@ -34,7 +36,8 @@ class DownloadService : Service() {
 
     private val downloadURLs = arrayListOf(
         "https://dl.google.com/dl/android/studio/install/3.3.2.0/android-studio-ide-182.5314842-windows.exe",
-        "https://upload.wikimedia.org/wikipedia/commons/2/2d/Snake_River_%285mb%29.jpg"
+        "https://upload.wikimedia.org/wikipedia/commons/2/2d/Snake_River_%285mb%29.jpg",
+        "https://www.office.xerox.com/latest/SFTBR-04.PDF"
     )
 
     private val fileToSize = ConcurrentHashMap(downloadURLs.associateWith { 0 })
@@ -55,6 +58,15 @@ class DownloadService : Service() {
 
             // Begin next download
             val nextFileToDownload = getLargestFile()
+
+            // Finish wasting.
+            if (nextFileToDownload.isEmpty()) {
+                showToast(this@DownloadService, "Finished: wasted ${amountWasted.get() / 1000000 + 1}MB")
+                isStarted = false
+                amountToWaste = 0
+                amountWasted.set(0)
+                return
+            }
 
             // Start the next download
             enqueueFile(nextFileToDownload)
@@ -115,7 +127,7 @@ class DownloadService : Service() {
         // Register broadcast receiver for completed download
         registerReceiver(downloadBroadcastReceiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
 
-        // Update file sizes in hashmap in another thread
+        // Update file sizes in hashmap
         thread {
             for (file in fileToSize) {
                 val url = URL(file.key)
@@ -124,29 +136,37 @@ class DownloadService : Service() {
                 // Set connect timeout to 500 milliseconds
                 urlConnection.connectTimeout = 500
 
-                urlConnection.connect()
+                try {
+                    urlConnection.connect()
+                    Log.i("urlConnection", "connected to $url")
+                } catch (e: SocketTimeoutException) {
+                    Log.e("urlConnection", e.toString())
+                } catch (e: IOException) {
+                    Log.e("urlConnection", e.toString())
+                }
+
                 val fileSizeByte = urlConnection.contentLength
 
                 file.setValue(fileSizeByte)
             }
         }
 
-//        thread {
-//            while (true) {
-//                // Update amount wasted every 1 second in another thread when there is a download
-//                Thread.sleep(1000)
-//                if (downloadingID != 0L) {
-//                    amountWasted.set(getAmountWasted())
-//                    Log.i("amountWasted updated", "$amountWasted")
-//                }
-//            }
-//        }
+
+        thread {
+            while (true) {
+                // Update amount wasted every 1 second in another thread when there is a download
+                Thread.sleep(1000)
+                if (downloadingID != 0L) {
+                    Log.i("amountWasted updated", "${getAmountWasted() / 1000000}MB")
+                }
+            }
+        }
 
         super.onCreate()
     }
 
     override fun onBind(intent: Intent?): IBinder {
-        downloadManager = this.getSystemService(DownloadManager::class.java)
+        downloadManager = this.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
 
         return downloadBinder
     }
@@ -159,21 +179,21 @@ class DownloadService : Service() {
         val largestPossibleFile = getLargestFile()
 
         enqueueFile(largestPossibleFile)
+        isStarted = true
 
         return super.onStartCommand(intent, flags, startId)
     }
 
     override fun onDestroy() {
-        unregisterReceiver(downloadBroadcastReceiver)
         cleanDownload()
-        showToast(this, "service destroyed")
+        showToast(this, "1231231221")
 
         super.onDestroy()
     }
 
     private fun getLargestFile(): String {
 
-        var file: String = ""
+        var file = ""
         var size: Int = -1
 
         for (urlString in downloadURLs) {
@@ -197,7 +217,8 @@ class DownloadService : Service() {
             }
         }
 
-        Log.i("getLargestFile", file)
+
+        Log.i("getLargestFile", if (!file.isEmpty()) file + " of size $size" else "no file statisfies remaining amount")
 
         return file
     }
@@ -223,7 +244,7 @@ class DownloadService : Service() {
             .setAllowedOverRoaming(false)
             .setVisibleInDownloadsUi(false)
             .setTitle("Wasting data ...")
-            .setDestinationInExternalFilesDir(this, "", "/temp")
+            .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "/temp")
 
         downloadingID = downloadManager.enqueue(downloadRequest)
 
@@ -245,11 +266,28 @@ class DownloadService : Service() {
     }
 
     fun getAmountWasted(): Long {
-        //
+
         if (downloadingID == 0L) {
             return amountWasted.get()
         }
-        return getAmountDownloaded(downloadingID) + amountWasted.get()
+        return amountWasted.get() + getAmountDownloaded(downloadingID)
+    }
+
+    fun stopWasting() {
+        val tempAmountWasted = getAmountWasted() / 1000000
+        amountWasted.set(0)
+        cleanDownload()
+        isStarted = false
+        showToast(this, "Stopped: wasted $tempAmountWasted MB.")
+    }
+
+
+    // This function will be called only after isStarted becomes true
+    fun getProgress() : Int {
+        if (!isStarted) {
+            return 100
+        }
+        return ((amountWasted.get() / amountToWaste.toDouble()) * 100).toInt()
     }
 
 }

@@ -5,21 +5,24 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.icu.util.UniversalTimeScale.toLong
+import android.os.AsyncTask
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.os.IBinder
 import android.util.Log
 import android.view.View
 import android.widget.EditText
+import android.widget.ProgressBar
 import com.intrepiditee.wastedata.Utils.Companion.showToast
 import java.lang.Thread.sleep
+import java.lang.ref.WeakReference
 
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var downloadService: DownloadService
+    lateinit var downloadService: DownloadService
     private var isBound: Boolean = false
-    private var isStarted: Boolean = false
+    private lateinit var task : ProgressBarUpdateTask
 
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName, service: IBinder) {
@@ -48,7 +51,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun startWasting(view: View) {
-        if (isStarted) {
+        if (downloadService.isStarted) {
             showToast(this, "Error: already started.")
             return
         }
@@ -73,8 +76,10 @@ class MainActivity : AppCompatActivity() {
         // Start the download service after connection is successful
         if (isBound) {
             startService(downloadIntent)
-            isStarted = true
+            task = ProgressBarUpdateTask(this)
+            task.execute()
             showToast(this, "Starting: scheduled to waste $inputAmount MB.")
+
         } else {
             bindDownloadService()
             showToast(this, "Service rebond: please try again")
@@ -91,15 +96,13 @@ class MainActivity : AppCompatActivity() {
     fun stopWasting(view: View) {
         // TODO: Fetch amount wasted from service
 
-        if (!isStarted) {
+        if (!downloadService.isStarted) {
             showToast(this, "Error: not started yet.")
             return
         }
 
-        val amountWasted = downloadService.getAmountWasted() / 1000000
-        downloadService.cleanDownload()
-        isStarted = false
-        showToast(this, "Stopped: wasted $amountWasted MB.")
+        task.cancel(true)
+        downloadService.stopWasting()
     }
 }
 
