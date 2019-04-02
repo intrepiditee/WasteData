@@ -9,7 +9,7 @@
 
 
     <Button
-            android:text="Start"
+            android:text="START"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:id="@+id/startButton" android:onClick="startWasting" app:layout_constraintStart_toStartOf="parent"
@@ -20,7 +20,7 @@
             android:text="STOP"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:id="@+id/stopButton" android:onClick="stopWasting" app:layout_constraintEnd_toEndOf="parent"
+            android:id="@+id/stopButton" android:onClick="stopWastingOnClick" app:layout_constraintEnd_toEndOf="parent"
             android:layout_marginEnd="75dp"
             android:layout_marginBottom="8dp" app:layout_constraintBottom_toBottomOf="parent"
             android:layout_marginTop="8dp" app:layout_constraintTop_toBottomOf="@+id/textInputLayout"/>
@@ -49,4 +49,33 @@
                 android:hint="@string/inputHint" android:inputType="number"
                 android:id="@+id/inputField"/>
     </android.support.design.widget.TextInputLayout>
+    <TextView
+            android:text=""
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/amountWasted" app:layout_constraintStart_toStartOf="@+id/progressBar"
+            app:layout_constraintHorizontal_bias="1"
+            app:layout_constraintTop_toTopOf="@+id/progressBar"
+            app:layout_constraintBottom_toBottomOf="@+id/progressBar"
+            android:layout_marginStart="8dp" app:layout_constraintEnd_toStartOf="@+id/separator"
+            android:layout_marginEnd="8dp"/>
+    <TextView
+            android:text=""
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/amountToWaste" app:layout_constraintEnd_toEndOf="@+id/progressBar"
+            app:layout_constraintHorizontal_bias="0"
+            android:layout_marginEnd="8dp"
+            app:layout_constraintTop_toTopOf="@+id/progressBar"
+            app:layout_constraintBottom_toBottomOf="@+id/progressBar"
+            app:layout_constraintStart_toEndOf="@+id/separator" android:layout_marginStart="8dp"/>
+    <TextView
+            android:text="Not Started"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/separator"
+            app:layout_constraintTop_toTopOf="@+id/progressBar"
+            app:layout_constraintBottom_toBottomOf="@+id/progressBar"
+            app:layout_constraintEnd_toEndOf="parent" android:layout_marginEnd="8dp"
+            app:layout_constraintStart_toStartOf="parent" android:layout_marginStart="8dp"/>
 </android.support.constraint.ConstraintLayout>

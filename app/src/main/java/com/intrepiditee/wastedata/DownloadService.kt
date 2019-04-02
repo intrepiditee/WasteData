@@ -13,6 +13,7 @@ import android.os.Binder
 import android.os.Environment
 import android.os.IBinder
 import android.util.Log
+import com.intrepiditee.wastedata.Utils.Companion.bytesToMegaBytes
 import com.intrepiditee.wastedata.Utils.Companion.showToast
 import java.io.IOException
 import java.net.HttpURLConnection
@@ -27,8 +28,8 @@ class DownloadService : Service() {
     var isStarted: Boolean = false
 
     // Unit is B
-    private var amountToWaste: Long = 0
-    private var amountWasted = AtomicLong()
+    var amountToWaste: Long = 0
+    var amountWasted = AtomicLong()
 
     private val downloadBinder = DownloadBinder()
     private lateinit var downloadManager: DownloadManager
@@ -63,7 +64,7 @@ class DownloadService : Service() {
             if (nextFileToDownload.isEmpty()) {
                 showToast(this@DownloadService, "Finished: wasted ${amountWasted.get() / 1000000 + 1}MB")
                 isStarted = false
-                amountToWaste = 0
+//                amountToWaste = 0
                 amountWasted.set(0)
                 return
             }
@@ -122,7 +123,7 @@ class DownloadService : Service() {
 
     override fun onCreate() {
 
-        Log.i("onCreate", "creating")
+        Log.i("service onCreate", "creating")
 
         // Register broadcast receiver for completed download
         registerReceiver(downloadBroadcastReceiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
@@ -157,7 +158,7 @@ class DownloadService : Service() {
                 // Update amount wasted every 1 second in another thread when there is a download
                 Thread.sleep(1000)
                 if (downloadingID != 0L) {
-                    Log.i("amountWasted updated", "${getAmountWasted() / 1000000}MB")
+                    Log.i("amountWasted updated", "${getAmountWastedMegaBytes()} MB")
                 }
             }
         }
@@ -181,18 +182,20 @@ class DownloadService : Service() {
         enqueueFile(largestPossibleFile)
         isStarted = true
 
-        return super.onStartCommand(intent, flags, startId)
+        return START_NOT_STICKY
     }
 
     override fun onDestroy() {
-        cleanDownload()
-        showToast(this, "1231231221")
-
+        Log.i("service onDestory", "destroying")
         super.onDestroy()
     }
 
-    private fun getLargestFile(): String {
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        Log.i("service onTaskRemoved", "removing")
+        super.onTaskRemoved(rootIntent)
+    }
 
+    private fun getLargestFile(): String {
         var file = ""
         var size: Int = -1
 
@@ -265,6 +268,7 @@ class DownloadService : Service() {
         downloadingID = 0
     }
 
+    // Returns amount wasted since last start in B.
     fun getAmountWasted(): Long {
 
         if (downloadingID == 0L) {
@@ -273,8 +277,13 @@ class DownloadService : Service() {
         return amountWasted.get() + getAmountDownloaded(downloadingID)
     }
 
+    // Returns amount wasted since last start in MB.
+    fun getAmountWastedMegaBytes(): Long {
+        return bytesToMegaBytes(getAmountWasted()) + 1
+    }
+
     fun stopWasting() {
-        val tempAmountWasted = getAmountWasted() / 1000000
+        val tempAmountWasted = getAmountWastedMegaBytes()
         amountWasted.set(0)
         cleanDownload()
         isStarted = false
@@ -283,11 +292,11 @@ class DownloadService : Service() {
 
 
     // This function will be called only after isStarted becomes true
-    fun getProgress() : Int {
+    fun getProgress() : Long {
         if (!isStarted) {
             return 100
         }
-        return ((amountWasted.get() / amountToWaste.toDouble()) * 100).toInt()
+        return ((getAmountWasted() / amountToWaste.toDouble()) * 100).toLong()
     }
 
 }

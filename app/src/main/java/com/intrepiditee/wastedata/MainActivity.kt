@@ -9,10 +9,12 @@ import android.os.AsyncTask
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.os.IBinder
+import android.os.PersistableBundle
 import android.util.Log
 import android.view.View
 import android.widget.EditText
 import android.widget.ProgressBar
+import com.intrepiditee.wastedata.Utils.Companion.megaBytesToBytes
 import com.intrepiditee.wastedata.Utils.Companion.showToast
 import java.lang.Thread.sleep
 import java.lang.ref.WeakReference
@@ -22,9 +24,9 @@ class MainActivity : AppCompatActivity() {
 
     lateinit var downloadService: DownloadService
     private var isBound: Boolean = false
-    private lateinit var task : ProgressBarUpdateTask
+    private lateinit var progressBarUpdateTask: ProgressBarUpdateTask
 
-    private val connection = object : ServiceConnection {
+    private val downloaServiceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName, service: IBinder) {
             val downloadBinder = service as DownloadService.DownloadBinder
             downloadService = downloadBinder.getService()
@@ -46,7 +48,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun bindDownloadService() {
         val downloadIntent = Intent(this, DownloadService::class.java)
-        bindService(downloadIntent, connection,
+        bindService(downloadIntent, downloaServiceConnection,
             BIND_NOT_FOREGROUND or BIND_AUTO_CREATE)
     }
 
@@ -67,17 +69,24 @@ class MainActivity : AppCompatActivity() {
         // Convert input text to long
         val inputAmount = Integer.parseInt(inputText.trim().toString()).toLong()
 
+        if (inputAmount < 0) {
+            showToast(this, "Error: please enter a positive number")
+            return
+        }
+
         // Initialize download intent
         val downloadIntent = Intent(this, DownloadService::class.java)
 
         // Convert number of MB to number of B
-        downloadIntent.putExtra("amountToWaste", inputAmount * 1000000)
+        downloadIntent.putExtra("amountToWaste", megaBytesToBytes(inputAmount))
 
         // Start the download service after connection is successful
         if (isBound) {
             startService(downloadIntent)
-            task = ProgressBarUpdateTask(this)
-            task.execute()
+
+            // Get a new task every time.
+            progressBarUpdateTask = ProgressBarUpdateTask(this)
+            progressBarUpdateTask.execute()
             showToast(this, "Starting: scheduled to waste $inputAmount MB.")
 
         } else {
@@ -90,10 +99,32 @@ class MainActivity : AppCompatActivity() {
     override fun onRestart() {
         // TODO: check if service still running
         // TODO: fetch newest amount wasted
+        Log.i("onRestart", "restarting")
         super.onRestart()
     }
 
-    fun stopWasting(view: View) {
+    override fun onDestroy() {
+        Log.i("onDestory", "destroying")
+        stopWasting()
+        unbindService(downloaServiceConnection)
+        super.onDestroy()
+    }
+
+    override fun onStop() {
+        Log.i("onStop", "stopping")
+        super.onStop()
+    }
+
+    override fun onBackPressed() {
+        moveTaskToBack(false)
+    }
+
+    fun stopWastingOnClick(view: View) {
+        stopWasting()
+    }
+
+    // Stop progress bar thread and call stopWasting on the service
+    private fun stopWasting() {
         // TODO: Fetch amount wasted from service
 
         if (!downloadService.isStarted) {
@@ -101,7 +132,7 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        task.cancel(true)
+        progressBarUpdateTask.cancel(true)
         downloadService.stopWasting()
     }
 }
