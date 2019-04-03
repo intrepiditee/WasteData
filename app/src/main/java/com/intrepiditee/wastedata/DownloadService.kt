@@ -2,6 +2,8 @@ package com.intrepiditee.wastedata
 
 import android.app.*
 import android.app.NotificationManager.IMPORTANCE_HIGH
+import android.app.PendingIntent.FLAG_ONE_SHOT
+import android.app.PendingIntent.FLAG_UPDATE_CURRENT
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -70,11 +72,17 @@ class DownloadService : Service() {
 
                 // Send notification.
                 // TODO: tap action
+                val intent = Intent(this@DownloadService, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+                }
+                val pendingIntent = PendingIntent.getActivity(this@DownloadService, 0, intent, FLAG_ONE_SHOT)
                 val notificationBuilder = NotificationCompat.Builder(this@DownloadService, "ds")
                         // TODO: nicer icon
                     .setSmallIcon(R.drawable.notification_icon_background)
                     .setContentText("Wasting completed: wasted ${getAmountWastedMegaBytes()} MB")
                     .setPriority(NotificationCompat.PRIORITY_HIGH)
+                    .setContentIntent(pendingIntent)
+                    .setAutoCancel(true)
                 with (NotificationManagerCompat.from(this@DownloadService)) {
                     notify(numNotification++, notificationBuilder.build())
                 }
