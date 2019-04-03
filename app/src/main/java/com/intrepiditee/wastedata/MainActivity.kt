@@ -133,6 +133,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         progressBarUpdateTask.cancel(true)
+        val tempAmountWasted = downloadService.getAmountWastedMegaBytes()
+        showToast(this, "Stopped: wasted $tempAmountWasted MB.")
         downloadService.stopWasting()
     }
 }

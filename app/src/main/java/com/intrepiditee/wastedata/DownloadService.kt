@@ -1,8 +1,7 @@
 package com.intrepiditee.wastedata
 
-import android.app.DownloadManager
-import android.app.IntentService
-import android.app.Service
+import android.app.*
+import android.app.NotificationManager.IMPORTANCE_HIGH
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -10,8 +9,11 @@ import android.content.IntentFilter
 import android.database.Cursor
 import android.net.Uri
 import android.os.Binder
+import android.os.Build
 import android.os.Environment
 import android.os.IBinder
+import android.support.v4.app.NotificationCompat
+import android.support.v4.app.NotificationManagerCompat
 import android.util.Log
 import com.intrepiditee.wastedata.Utils.Companion.bytesToMegaBytes
 import com.intrepiditee.wastedata.Utils.Companion.showToast
@@ -22,6 +24,7 @@ import java.net.URL
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.concurrent.thread
+import kotlin.random.Random
 
 
 class DownloadService : Service() {
@@ -30,6 +33,8 @@ class DownloadService : Service() {
     // Unit is B
     var amountToWaste: Long = 0
     var amountWasted = AtomicLong()
+
+    var numNotification: Int = 0
 
     private val downloadBinder = DownloadBinder()
     private lateinit var downloadManager: DownloadManager
@@ -62,10 +67,23 @@ class DownloadService : Service() {
 
             // Finish wasting.
             if (nextFileToDownload.isEmpty()) {
-                showToast(this@DownloadService, "Finished: wasted ${amountWasted.get() / 1000000 + 1}MB")
+
+                // Send notification.
+                // TODO: tap action
+                val notificationBuilder = NotificationCompat.Builder(this@DownloadService, "ds")
+                        // TODO: nicer icon
+                    .setSmallIcon(R.drawable.notification_icon_background)
+                    .setContentText("Wasting completed: wasted ${getAmountWastedMegaBytes()} MB")
+                    .setPriority(NotificationCompat.PRIORITY_HIGH)
+                with (NotificationManagerCompat.from(this@DownloadService)) {
+                    notify(numNotification++, notificationBuilder.build())
+                }
+
                 isStarted = false
 //                amountToWaste = 0
                 amountWasted.set(0)
+                downloadingID = 0
+
                 return
             }
 
@@ -127,6 +145,9 @@ class DownloadService : Service() {
 
         // Register broadcast receiver for completed download
         registerReceiver(downloadBroadcastReceiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
+
+        // Create notification channel.
+        createNotificationChannel()
 
         // Update file sizes in hashmap
         thread {
@@ -283,11 +304,9 @@ class DownloadService : Service() {
     }
 
     fun stopWasting() {
-        val tempAmountWasted = getAmountWastedMegaBytes()
         amountWasted.set(0)
         cleanDownload()
         isStarted = false
-        showToast(this, "Stopped: wasted $tempAmountWasted MB.")
     }
 
 
@@ -297,6 +316,16 @@ class DownloadService : Service() {
             return 100
         }
         return ((getAmountWasted() / amountToWaste.toDouble()) * 100).toLong()
+    }
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel("ds", "downloadService", IMPORTANCE_HIGH).apply {
+                description = "notification channel for downloadService"
+            }
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+        }
     }
 
 }
