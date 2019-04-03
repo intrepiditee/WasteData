@@ -24,6 +24,7 @@ class ProgressBarUpdateTask internal constructor(context: MainActivity): AsyncTa
         Log.i("setProgress", progress.toString())
     }
 
+    // Amount wasted is in MB
     private fun setAmountWasted(amountWasted: Long) {
         activityReference.get()?.findViewById<TextView>(R.id.amountWasted)?.text = amountWasted.toString()
     }
@@ -58,14 +59,11 @@ class ProgressBarUpdateTask internal constructor(context: MainActivity): AsyncTa
         // Wait for download to start.
         while (activityReference.get() != null && (!isCancelled) && activityReference.get()?.downloadService?.isStarted == false) {Thread.sleep(1000)}
 
+        val amountToWaste: Long = bytesToMegaBytes(activityReference.get()?.downloadService?.amountToWaste ?: 0)
+
         // Compute and publish progress.
         while (activityReference.get() != null && !isCancelled) {
-            val progress: Long = activityReference.get()?.downloadService?.getProgress() ?: 0
-            var amountWasted: Long = activityReference.get()?.downloadService?.getAmountWastedMegaBytes() ?: 0
-            val amountToWaste: Long = bytesToMegaBytes(activityReference.get()?.downloadService?.amountToWaste ?: 0)
-            if (progress == 100L) {
-                amountWasted = amountToWaste
-            }
+            val (progress, amountWasted) = activityReference.get()?.downloadService?.getProgress() ?: Pair<Long, Long>(0, 0)
 
             publishProgress(progress, amountWasted, amountToWaste)
 

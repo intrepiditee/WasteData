@@ -18,6 +18,7 @@ import android.support.v4.app.NotificationCompat
 import android.support.v4.app.NotificationManagerCompat
 import android.util.Log
 import com.intrepiditee.wastedata.Utils.Companion.bytesToMegaBytes
+import com.intrepiditee.wastedata.Utils.Companion.megaBytesToBytes
 import com.intrepiditee.wastedata.Utils.Companion.showToast
 import java.io.IOException
 import java.net.HttpURLConnection
@@ -183,15 +184,15 @@ class DownloadService : Service() {
         }
 
 
-        thread {
-            while (true) {
-                // Update amount wasted every 1 second in another thread when there is a download
-                Thread.sleep(1000)
-                if (downloadingID != 0L) {
-                    Log.i("amountWasted updated", "${getAmountWastedMegaBytes()} MB")
-                }
-            }
-        }
+//        thread {
+//            while (true) {
+//                // Update amount wasted every 1 second in another thread when there is a download
+//                Thread.sleep(1000)
+//                if (downloadingID != 0L) {
+//                    Log.i("amountWasted updated", "${getAmountWastedMegaBytes()} MB")
+//                }
+//            }
+//        }
 
         super.onCreate()
     }
@@ -320,11 +321,16 @@ class DownloadService : Service() {
 
 
     // This function will be called only after isStarted becomes true
-    fun getProgress() : Long {
+    // Returns progress and amount wasted.
+    fun getProgress() : Pair<Long, Long> {
         if (!isStarted) {
-            return 100
+            return Pair(100, bytesToMegaBytes(amountToWaste))
         }
-        return ((getAmountWasted() / amountToWaste.toDouble()) * 100).toLong()
+
+        // Want to make amount wasted and progress consistent with each other
+        val amountWasted = getAmountWastedMegaBytes()
+        val progress = ((megaBytesToBytes(amountWasted) / amountToWaste.toDouble()) * 100).toLong()
+        return Pair(progress, amountWasted)
     }
 
     private fun createNotificationChannel() {
