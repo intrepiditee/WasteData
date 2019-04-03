@@ -71,11 +71,12 @@ class DownloadService : Service() {
             if (nextFileToDownload.isEmpty()) {
 
                 // Send notification.
-                // TODO: tap action
-                val intent = Intent(this@DownloadService, MainActivity::class.java).apply {
+                val notificationIntent = Intent(this@DownloadService, MainActivity::class.java).apply {
+
+                    // Do not start new activity unless it has been destroyed
                     flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
                 }
-                val pendingIntent = PendingIntent.getActivity(this@DownloadService, 0, intent, FLAG_ONE_SHOT)
+                val pendingIntent = PendingIntent.getActivity(this@DownloadService, 0, notificationIntent, FLAG_ONE_SHOT)
                 val notificationBuilder = NotificationCompat.Builder(this@DownloadService, "ds")
                         // TODO: nicer icon
                     .setSmallIcon(R.drawable.notification_icon_background)

@@ -17,7 +17,7 @@
             android:layout_marginBottom="8dp" app:layout_constraintBottom_toBottomOf="parent"
             android:layout_marginTop="8dp" app:layout_constraintTop_toBottomOf="@+id/textInputLayout"/>
     <Button
-            android:text="STOP"
+            android:text="CANCEL"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:id="@+id/stopButton" android:onClick="stopWastingOnClick" app:layout_constraintEnd_toEndOf="parent"
@@ -50,7 +50,7 @@
                 android:id="@+id/inputField"/>
     </android.support.design.widget.TextInputLayout>
     <TextView
-            android:text=""
+            android:text="0"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:id="@+id/amountWasted" app:layout_constraintStart_toStartOf="@+id/progressBar"
@@ -60,7 +60,7 @@
             android:layout_marginStart="8dp" app:layout_constraintEnd_toStartOf="@+id/separator"
             android:layout_marginEnd="8dp"/>
     <TextView
-            android:text=""
+            android:text="0"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:id="@+id/amountToWaste" app:layout_constraintEnd_toEndOf="@+id/progressBar"
@@ -70,7 +70,7 @@
             app:layout_constraintBottom_toBottomOf="@+id/progressBar"
             app:layout_constraintStart_toEndOf="@+id/separator" android:layout_marginStart="8dp"/>
     <TextView
-            android:text="Not Started"
+            android:text="/"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:id="@+id/separator"
@@ -78,4 +78,11 @@
             app:layout_constraintBottom_toBottomOf="@+id/progressBar"
             app:layout_constraintEnd_toEndOf="parent" android:layout_marginEnd="8dp"
             app:layout_constraintStart_toStartOf="parent" android:layout_marginStart="8dp"/>
+    <TextView
+            android:text="Not Started"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/status" app:layout_constraintEnd_toEndOf="parent" android:layout_marginEnd="8dp"
+            app:layout_constraintStart_toStartOf="parent" android:layout_marginStart="8dp"
+            android:layout_marginBottom="8dp" app:layout_constraintBottom_toTopOf="@+id/progressBar"/>
 </android.support.constraint.ConstraintLayout>

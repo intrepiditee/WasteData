@@ -8,6 +8,15 @@ import com.intrepiditee.wastedata.Utils.Companion.bytesToMegaBytes
 import java.lang.ref.WeakReference
 
 class ProgressBarUpdateTask internal constructor(context: MainActivity): AsyncTask<Unit, Long, Unit>() {
+
+    companion object {
+        val NOT_STARTED = 0
+        val IN_PROGRESS = 1
+        val FINISHED = 2
+        val CANCELLED = 3;
+
+    }
+
     private val activityReference = WeakReference(context)
 
     private fun setProgress(progress: Long) {
@@ -16,20 +25,23 @@ class ProgressBarUpdateTask internal constructor(context: MainActivity): AsyncTa
     }
 
     private fun setAmountWasted(amountWasted: Long) {
-
-        // If amountWasted is less than 0, set text to empty string.
-        val text = if (amountWasted < 0L) "" else amountWasted.toString()
-        activityReference.get()?.findViewById<TextView>(R.id.amountWasted)?.text = text
+        activityReference.get()?.findViewById<TextView>(R.id.amountWasted)?.text = amountWasted.toString()
     }
 
     private fun setAmountToWaste(amountToWaste: Long) {
-        val text = if (amountToWaste < 0L) "" else amountToWaste.toString()
-        activityReference.get()?.findViewById<TextView>(R.id.amountToWaste)?.text = text
+        activityReference.get()?.findViewById<TextView>(R.id.amountToWaste)?.text = amountToWaste.toString()
     }
 
-    private fun setSeparator(isToSeparator: Boolean) {
-        val text = if (isToSeparator) "/" else "Not Started"
-        activityReference.get()?.findViewById<TextView>(R.id.separator)?.text = text
+    private fun setStatus(status: Int) {
+        var text = "Not Started"
+        when (status) {
+            NOT_STARTED -> text = "Not Started"
+            IN_PROGRESS -> text = "In Progress"
+            FINISHED -> text = "Finished"
+            CANCELLED -> text = "Cancelled"
+            else -> Log.e("setStatus", "unknown status code")
+        }
+        activityReference.get()?.findViewById<TextView>(R.id.status)?.text = text
     }
 
     override fun onPreExecute() {
@@ -37,8 +49,8 @@ class ProgressBarUpdateTask internal constructor(context: MainActivity): AsyncTa
         // Clear progress bar.
         setProgress(0)
         setAmountWasted(0)
-        setSeparator(true)
         setAmountToWaste(0)
+        setStatus(NOT_STARTED)
     }
 
     override fun doInBackground(vararg params: Unit) {
@@ -66,11 +78,11 @@ class ProgressBarUpdateTask internal constructor(context: MainActivity): AsyncTa
         }
     }
 
+    override fun onPostExecute(result: Unit?) {
+        setStatus(FINISHED)
+    }
     override fun onCancelled(result: Unit?) {
-        setProgress(-1)
-        setAmountWasted(-1)
-        setSeparator(false)
-        setAmountToWaste(-1)
+        setStatus(CANCELLED)
     }
 
     override fun onProgressUpdate(vararg values: Long?) {
@@ -78,6 +90,7 @@ class ProgressBarUpdateTask internal constructor(context: MainActivity): AsyncTa
             setProgress(values[0]!!)
             setAmountWasted(values[1]!!)
             setAmountToWaste(values[2]!!)
+            setStatus(IN_PROGRESS)
         }
     }
 
