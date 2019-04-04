@@ -79,7 +79,9 @@ class ProgressBarUpdateTask internal constructor(context: MainActivity): AsyncTa
     override fun onPostExecute(result: Unit?) {
         setStatus(FINISHED)
     }
+
     override fun onCancelled(result: Unit?) {
+        Log.i("onCancelled", "cancelling")
         setStatus(CANCELLED)
     }
 

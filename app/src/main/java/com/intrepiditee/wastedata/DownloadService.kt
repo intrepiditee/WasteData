@@ -19,7 +19,6 @@ import android.support.v4.app.NotificationManagerCompat
 import android.util.Log
 import com.intrepiditee.wastedata.Utils.Companion.bytesToMegaBytes
 import com.intrepiditee.wastedata.Utils.Companion.megaBytesToBytes
-import com.intrepiditee.wastedata.Utils.Companion.showToast
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.SocketTimeoutException
@@ -71,23 +70,8 @@ class DownloadService : Service() {
             // Finish wasting.
             if (nextFileToDownload.isEmpty()) {
 
-                // Send notification.
-                val notificationIntent = Intent(this@DownloadService, MainActivity::class.java).apply {
-
-                    // Do not start new activity unless it has been destroyed
-                    flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
-                }
-                val pendingIntent = PendingIntent.getActivity(this@DownloadService, 0, notificationIntent, FLAG_ONE_SHOT)
-                val notificationBuilder = NotificationCompat.Builder(this@DownloadService, "ds")
-                        // TODO: nicer icon
-                    .setSmallIcon(R.drawable.notification_icon_background)
-                    .setContentText("Wasting completed: wasted ${getAmountWastedMegaBytes()} MB")
-                    .setPriority(NotificationCompat.PRIORITY_HIGH)
-                    .setContentIntent(pendingIntent)
-                    .setAutoCancel(true)
-                with (NotificationManagerCompat.from(this@DownloadService)) {
-                    notify(numNotification++, notificationBuilder.build())
-                }
+                // Send notification to inform user
+                notifyWastingCompleted()
 
                 isStarted = false
 //                amountToWaste = 0
@@ -159,6 +143,7 @@ class DownloadService : Service() {
         // Create notification channel.
         createNotificationChannel()
 
+
         // Update file sizes in hashmap
         thread {
             for (file in fileToSize) {
@@ -221,8 +206,18 @@ class DownloadService : Service() {
         super.onDestroy()
     }
 
+    override fun onUnbind(intent: Intent?): Boolean {
+        Log.i("service onUnbind", "unbinding")
+        return super.onUnbind(intent)
+    }
+
     override fun onTaskRemoved(rootIntent: Intent?) {
         Log.i("service onTaskRemoved", "removing")
+
+        // Clean up downloading file
+        stopWasting()
+
+        // Stop the service.
         super.onTaskRemoved(rootIntent)
     }
 
@@ -340,6 +335,25 @@ class DownloadService : Service() {
             }
             val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(channel)
+        }
+    }
+
+    private fun notifyWastingCompleted() {
+        val notificationIntent = Intent(this@DownloadService, MainActivity::class.java).apply {
+
+            // Do not start new activity unless it has been destroyed
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
+        val pendingIntent = PendingIntent.getActivity(this@DownloadService, 0, notificationIntent, FLAG_ONE_SHOT)
+        val notificationBuilder = NotificationCompat.Builder(this@DownloadService, "ds")
+            // TODO: nicer icon
+            .setSmallIcon(R.drawable.notification_icon_background)
+            .setContentText("Wasting completed: wasted ${getAmountWastedMegaBytes()} MB")
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+        with (NotificationManagerCompat.from(this@DownloadService)) {
+            notify(numNotification++, notificationBuilder.build())
         }
     }
 

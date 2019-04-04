@@ -105,8 +105,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         Log.i("onDestory", "destroying")
-        stopWasting()
-        unbindService(downloaServiceConnection)
         super.onDestroy()
     }
 
@@ -129,12 +127,14 @@ class MainActivity : AppCompatActivity() {
 
         if (!downloadService.isStarted) {
             showToast(this, "Error: not started yet.")
+            Log.e("stopWasting", "not started")
             return
         }
 
         progressBarUpdateTask.cancel(true)
         val tempAmountWasted = downloadService.getAmountWastedMegaBytes()
         showToast(this, "Cancelled: wasted $tempAmountWasted MB.")
+        Log.i("stopWasting", "cancelled")
         downloadService.stopWasting()
     }
 }
